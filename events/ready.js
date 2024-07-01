@@ -7,9 +7,8 @@ module.exports = {
     execute(client) {
         const status = [
             { type: 0, content: '/help' },
-            { type: 0, content: '/shop' },
-            { type: 0, content: '/leaderboard' },
-            { type: 0, content: '/quest' },
+            { type: 0, content: `${process.env.WEBSITE_LINK}` },
+            { type: 0, content: `${client.guilds.cache.size} servers` },
             { type: 0, content: `${client.guilds.cache.size} servers` },
         ];
         setInterval(() => {
