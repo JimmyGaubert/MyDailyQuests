@@ -1,5 +1,4 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-
 module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('help')
@@ -15,7 +14,7 @@ module.exports = {
 			new EmbedBuilder()
 				.setColor("Gold")
 				.setAuthor({ name: `Commands` })
-				.setDescription(`\`/help \` - Display bot informations\n\n\`/quest\` - Display the daily quests\n\n\`/quest <number>\` - Allows you to complete a quest\n\n\`/bag\` - Display your inventory\n\n\`/me\` - Display your player profile\n\n\`/shop\` - Display the shop\n\n\`/lb\` - Display the Leaderboard\n\n\`/ping\` - Display the bot ping\n\n\`/admin\` - A mysterious admin restricted command`)
+				.setDescription(`\`/help\` - Display bot informations\n\n\`/quest\` - Display the daily quests\n\n\`/quest <number>\` - Allows you to complete a quest\n\n\`/bag\` - Display your inventory\n\n\`/me\` - Display your player profile\n\n\`/shop\` - Display the shop\n\n\`/lb\` - Display the Leaderboard\n\n\`/guild\` - Display guilds information\n\n\`/ping\` - Display the bot ping\n\n\`/admin\` - A mysterious admin restricted command`)
 				.setImage(`https://www.aht.li/3857013/help.png`)
 				.setFooter({ text: `Page 2/3` }),
 			new EmbedBuilder()

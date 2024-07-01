@@ -26,13 +26,13 @@ module.exports = {
 				if (quest) {
 					switch (quest.quest_type) {
 						case 'item':
-							await handleItemQuest(interaction, quest, query);
+							await handleItemQuest(interaction, quest, query, choice);
 							break;
 						case 'special':
-							await handleSpecialQuest(interaction, quest, query);
+							await handleSpecialQuest(interaction, quest, query, choice);
 							break;
 						case '20_percent':
-							await handle20PercentQuest(interaction, quest, query);
+							await handle20PercentQuest(interaction, quest, query, choice);
 							break;
 						case 'fidelity':
 							await handleFidelityQuest(interaction, quest, query, choice);
@@ -52,17 +52,26 @@ module.exports = {
 		}
 	},
 };
-async function displayQuestBoard(interaction, quests, query) {
+async function displayQuestBoard(interaction, quests, query, choice) {
 	const userId = interaction.user.id;
 	const playerQuestsResults = await query(`SELECT * FROM player_quests WHERE discord_id = '${userId}'`);
 	const nowEpochInSeconds = ~~(new Date().getTime() / 1000);
 	const embedsArray = [];
 	for (let i = 0; i < quests.length; i++) {
+		const quest = quests[i];
+		let itemDescription = '';
+		if (quest.required_item !== '0') {
+			const itemResults = await query(`SELECT title_en FROM item WHERE id = '${quest.required_item}'`);
+			const requiredItemName = itemResults.length > 0 ? itemResults[0].title_en : 'Unknown Item';
+			itemDescription = `Required Item: \`${requiredItemName}\``;
+		}
+		let questCommand = `Quest command: \`/quest ${i+1}\``;
+		console.log(playerQuestsResults[0]['quest_' + (i + 1)])
 		embedsArray.push(
 			new EmbedBuilder()
 				.setColor("Gold")
 				.setAuthor({ name: `${quests[i].title_en}` })
-				.setDescription(`${quests[i].description_en} \n\nQuest available: \`${parseInt(playerQuestsResults[0]['quest_' + (i + 1)]) <= nowEpochInSeconds}\``)
+				.setDescription(`${quests[i].description_en} \n\n\nQuest available: \`${parseInt(playerQuestsResults[0]['quest_' + (i + 1)]) <= nowEpochInSeconds}\`\n\n${questCommand}\n\n${itemDescription}`/***/)
 				.setImage(`${quests[i].img}`)
 				.setFooter({ text: `Page ${i + 1}/5` })
 		);
@@ -90,7 +99,7 @@ async function displayQuestBoard(interaction, quests, query) {
 	});
 	collector.on('end', () => msg.reactions.removeAll().catch(() => { }));
 }
-async function handleItemQuest(interaction, quest, query) {
+async function handleItemQuest(interaction, quest, query, choice) {
 	const userId = interaction.user.id;
 	const playerQuestsResults = await query(`SELECT * FROM player_quests WHERE discord_id = '${userId}'`);
 	const nowEpochInSeconds = ~~(new Date().getTime() / 1000);
@@ -98,8 +107,9 @@ async function handleItemQuest(interaction, quest, query) {
 	midnight.setHours(24, 0, 0, 0);
 	const midnightEpochInSeconds = ~~(midnight.getTime() / 1000);
 	const questSlot = `quest_${quest.id}`;
-	if (playerQuestsResults[0][questSlot] === undefined) { await interaction.reply(`Sorry, the quest slot ${questSlot} does not exist for this player.`); return; }
-	if (parseInt(playerQuestsResults[0][questSlot]) < nowEpochInSeconds) {
+	const playerQuestSlot=`quest_${choice}`
+	if (playerQuestsResults[0][questSlot] === undefined) { await interaction.reply(`Sorry, the quest slot ${playerQuestSlot} does not exist for this player.`); return; }
+	if (parseInt(playerQuestsResults[0][playerQuestSlot]) <= nowEpochInSeconds) {
 		const itemResults = await query(`SELECT * FROM item WHERE id = '${quest.required_item}'`);
 		const rewardResults = await query(`SELECT * FROM item WHERE id = '${quest.rewards.split('x')[1]}'`);
 		const playerInventoryResults = await query(`SELECT * FROM player_inventory WHERE discord_id = '${userId}'`);
@@ -108,7 +118,7 @@ async function handleItemQuest(interaction, quest, query) {
 		const reward_id = parseInt(rewardResults[0].id);
 		const numberOfItemToReward = parseInt(quest.rewards.split('x')[0]);
 		if ((parseInt(playerInventoryResults[0][item]) >= 1 && parseInt(quest.required_item) != 0) || parseInt(quest.required_item) == 0) {
-			await query(`UPDATE player_quests SET ${questSlot} = '${midnightEpochInSeconds}' WHERE discord_id = '${userId}'`);
+			await query(`UPDATE player_quests SET ${playerQuestSlot} = '${midnightEpochInSeconds}' WHERE discord_id = '${userId}'`);
 			if (parseInt(quest.required_item) != 0) { await query(`UPDATE player_inventory SET ${item} = ${parseInt(playerInventoryResults[0][item]) - 1} WHERE discord_id = '${userId}'`) }
 			if (reward_id != 0) { await query(`UPDATE player_inventory SET ${reward} = ${parseInt(playerInventoryResults[0][reward]) + numberOfItemToReward} WHERE discord_id = '${userId}'`) }
 			await query(`UPDATE player_money SET coins = coins + 1 WHERE discord_id = '${userId}'`);
@@ -116,7 +126,7 @@ async function handleItemQuest(interaction, quest, query) {
 			await query(`UPDATE guild SET total_guild_points = total_guild_points + 1 WHERE discord_id = '${interaction.guildId}'`);
 			const embedRewards = new EmbedBuilder()
 				.setColor("Gold")
-				.setDescription(`Quest completed! ${item ==="void"? '':`${item} -1, `}${reward==='void'?'':`${reward} +${numberOfItemToReward}, `}coin +1, exp +1, gp +1 !`)
+				.setDescription(`Quest completed! ${item === "void" ? '' : `${item} -1, `}${reward === 'void' ? '' : `${reward} +${numberOfItemToReward}, `}coin +1, exp +1, gp +1 !`)
 				.setImage(`${quest.done_img}`)
 			await interaction.reply({ embeds: [embedRewards] });
 		} else {
@@ -126,7 +136,7 @@ async function handleItemQuest(interaction, quest, query) {
 		await interaction.reply({ content: `Sorry, you have already completed this quest today`, ephemeral: true });
 	}
 }
-async function handleSpecialQuest(interaction, quest, query) {
+async function handleSpecialQuest(interaction, quest, query, choice) {
 	const userId = interaction.user.id;
 	const specialItems = ['chest_key', 'bread', 'nugget', 'rope'];
 	const randomItem = specialItems[Math.floor(Math.random() * specialItems.length)];
@@ -161,7 +171,7 @@ async function handle20PercentQuest(interaction, quest, query) {
 	const userId = interaction.user.id;
 	const playerMoneyResults = await query(`SELECT coins FROM player_money WHERE discord_id = '${userId}'`);
 	const playerQuestsResults = await query(`SELECT * FROM player_quests WHERE discord_id = '${userId}'`);
-	if (playerMoneyResults.length === 0 || playerQuestsResults.length === 0) { 
+	if (playerMoneyResults.length === 0 || playerQuestsResults.length === 0) {
 		await interaction.reply({ content: `An error occurred: Player data not found. Please contact the dev and provide screenshots.`, ephemeral: true }); return;
 	};
 	const currentCoins = parseInt(playerMoneyResults[0].coins);
@@ -205,7 +215,7 @@ async function handleFidelityQuest(interaction, quest, query, choice) {
 		}
 	} else if (quest.id === '0') {
 		if (parseInt(interaction.guildId) != 1250459005076377711) {
-			await interaction.reply(`Sorry, this quest must be done on the bot server: /SM5dePqdug`);
+			await interaction.reply(`Sorry, this quest must be done on the bot server: https://discord.gg/SM5dePqdug`);
 		} else {
 			await completeFidelityQuest(interaction, quest, query, userId, choice);
 		}
@@ -225,11 +235,12 @@ async function completeFidelityQuest(interaction, quest, query, userId, choice) 
 		await query(`UPDATE player_money SET coins = coins + 2 WHERE discord_id = '${userId}'`);
 		await query(`UPDATE player_stats SET exp_points = exp_points + 1, guild_points = guild_points + 1, quests_done = quests_done + 1 WHERE discord_id = '${userId}'`);
 		await query(`UPDATE guild SET total_guild_points = total_guild_points + 1 WHERE discord_id = '${interaction.guildId}'`);
-		const embedRewards = new EmbedBuilder()
+		let embedRewards = new EmbedBuilder()
 			.setColor("Gold")
 			.setImage(`${quest.done_img}`)
 			.setDescription(`Quest completed! You received 2 coins, exp +1, gp +1 !`)
 		await interaction.reply({ embeds: [embedRewards] });
+		if (choice === '4') { await interaction.channel.send('https://discord.gg/SM5dePqdug\n\nhttps://discord.com/oauth2/authorize?client_id=1250451012381311047') }
 	} else {
 		await interaction.reply({ content: `Sorry, you have already completed this quest today`, ephemeral: true });
 	}

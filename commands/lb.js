@@ -27,7 +27,7 @@ module.exports = {
 			}
 			for (const id of guildIds) {
 				const guild = await interaction.client.guilds.fetch(id).catch(() => null);
-				const guildname = guild.name || `Unknown Guild (${id})`;
+				const guildname = guild?.name || `Unknown Guild (${id})`;
 				guildMap.set(id, guildname);
 			}
 			const fieldExp = topExpPoints.map((e, i) => ({ name: '\u200B', value: `**${i + 1}.** ${userMap.get(e.discord_id)} ** ** \`${e.exp_points}\`` }));

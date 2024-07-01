@@ -14,11 +14,11 @@ module.exports = {
 			const playerInventoryEmbed = new EmbedBuilder().setColor("Gold").setFooter({text:`${inventoryName}`}).setImage(`https://www.aht.li/3857014/bag.png`)
 				.addFields(
 					{ name: '\u200B', value: '\u200B' },
-					{ name: '\u200B', value: `\\🗝️ **key** \`${playerInventory[0].chest_key.padEnd(3, ' ')}\``, inline: true },
-					{ name: '\u200B', value: `\\🍞 **bread** \`${playerInventory[0].bread.padEnd(3, ' ')}\``, inline: true },
-					{ name: '\u200B', value: `🪢 **rope** \`${playerInventory[0].rope.padEnd(3, ' ')}\``, inline: true },
+					{ name: '\u200B', value: `<:keyy:1256230191056027720> **key** \`${playerInventory[0].chest_key.padEnd(3, ' ')}\``, inline: true },
+					{ name: '\u200B', value: `<:breadd:1256230197771108406> **bread** \`${playerInventory[0].bread.padEnd(3, ' ')}\``, inline: true },
+					{ name: '\u200B', value: `<:ropee:1256230189872971846> **rope** \`${playerInventory[0].rope.padEnd(3, ' ')}\``, inline: true },
 					{ name: '\u200B', value: '\u200B' },
-					{ name: '\u200B', value: `\\🍖 **nugget** \`${playerInventory[0].nugget.padEnd(3, ' ')}\``, inline: true },
+					{ name: '\u200B', value: `<:nuggett:1256230187964825673> **nugget** \`${playerInventory[0].nugget.padEnd(3, ' ')}\``, inline: true },
 					{ name: '\u200B', value: '\u200B' },
 				);
 			await interaction.reply({embeds: [playerInventoryEmbed]})

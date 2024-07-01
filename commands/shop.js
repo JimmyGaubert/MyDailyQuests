@@ -21,10 +21,10 @@ module.exports = {
 		const itemName = interaction.options.getString('item');
 		const quantity = interaction.options.getInteger('quantity') || 1;
 		const shopItems = [
-			{ title: 'rope', price: 5, emoji: '🪢' },
-			{ title: 'bread', price: 5, emoji: '\\🍞' },
-			{ title: 'nugget', price: 5, emoji: '\\🍖' },
-			{ title: 'chest_key', price: 5, emoji: '\\🗝️' }
+			{ title: 'rope', price: 5, emoji: '<:ropee:1256230189872971846>' },
+			{ title: 'bread', price: 5, emoji: '<:breadd:1256230197771108406>' },
+			{ title: 'nugget', price: 5, emoji: '<:nuggett:1256230187964825673>' },
+			{ title: 'chest_key', price: 5, emoji: '<:keyy:1256230191056027720>' }
 		];
 		try {
 			if (!itemName) { await displayShopItems(interaction, shopItems) } else { await buyItem(interaction, itemName, quantity, shopItems, query) }

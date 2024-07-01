@@ -29,7 +29,7 @@ module.exports = {
         const wip = 'Work in progress!';
         const subcommand = interaction.options.getSubcommand();
         const code = interaction.options.getString(subcommand === 'cheat' ? 'cheatcode' : 'eventcode');
-        if (interaction.user.id !== '697896054607183882') { await interaction.reply('You do not have permission to use this command.'); return };
+        if (interaction.user.id !== `${process.env.BOT_OWNER}`) { await interaction.reply('You do not have permission to use this command.'); return };
         switch (subcommand) {
             case 'cheat':
                 switch (code) {

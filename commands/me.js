@@ -17,7 +17,8 @@ module.exports = {
 			const levelPointsPath = path.join(__dirname, '../json', 'level_points.json');
 			const levelPoints = JSON.parse(fs.readFileSync(levelPointsPath, 'utf-8'));
 			const playerStats = await query(`SELECT * FROM player_stats WHERE discord_id ='${interaction.user.id}'`);
-			const playerOptions = await query(`SELECT * FROM player_Options WHERE discord_id ='${interaction.user.id}'`);
+			const playerOptions = await query(`SELECT * FROM player_options WHERE discord_id ='${interaction.user.id}'`);
+			const playerCoins = await query(`SELECT * FROM player_money WHERE discord_id ='${interaction.user.id}'`);
 			const playerPoints = BigInt(playerStats[0].exp_points);
 			let playerLevel = 1;
 			for (const [level, points] of Object.entries(levelPoints)) { if (playerPoints >= BigInt(points)) { playerLevel = parseInt(level) } else { break } };
@@ -25,6 +26,7 @@ module.exports = {
 			if (!choice) {
 				const playerStatsEmbed = new EmbedBuilder().setColor("Gold").setFooter({ text: `${statsName}`, iconURL: `${interaction.user.displayAvatarURL()}` })
 				.addFields(
+					{ name: '\u200B', value: `**Coins** \`${playerCoins[0].coins}\`` },
 					{ name: '\u200B', value: `**Exp points** \`${playerPoints}\`` },
 					{ name: '\u200B', value: `**Level** \`${playerLevel}\`` },
 					{ name: '\u200B', value: `**Quests done** \`${playerStats[0].quests_done}\`` },
