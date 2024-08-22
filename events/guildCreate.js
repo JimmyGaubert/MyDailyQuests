@@ -1,17 +1,13 @@
-const { Events } = require('discord.js');
-const mysql = require('mysql');
-module.exports = {
+import { Events } from 'discord.js';
+import { db } from 'mysql';
+
+export default {
     name: Events.GuildCreate,
-    execute(guild) {
-        const db = mysql.createConnection({host:`${process.env.DB_HOST}`,user:`${process.env.DB_USER}`,password:`${process.env.DB_PWD}`,database:`${process.env.DB_NAME}`});
-        db.query(`SELECT * FROM guild WHERE discord_id = ${guild.id}`, (err, results) => {
-            if (err) { throw err };
-            if (results.length === 0) {
-                db.query(`INSERT INTO guild (discord_id) VALUES ("${guild.id}")`, err => {
-                    if (err) { throw err };
-                    db.end();
-                });
-            };
-        });
+    async execute(guild) {
+        const [ results ] = await db.query(`SELECT * FROM guild WHERE discord_id = ${guild.id}`);
+
+        if (results.length === 0) {
+            await db.query(`INSERT INTO guild (discord_id) VALUES ("${guild.id}")`);
+        };
     },
 };

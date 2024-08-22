@@ -1,7 +1,7 @@
-const { Events } = require('discord.js');
-const mysql = require('mysql');
-const db = mysql.createConnection({ host: `${process.env.DB_HOST}`, user: `${process.env.DB_USER}`, password: `${process.env.DB_PWD}`, database: `${process.env.DB_NAME}` });
-module.exports = {
+import { Events } from 'discord.js';
+import { db } from 'mysql';
+
+export default {
     name: Events.ClientReady,
     once: true,
     execute(client) {
@@ -23,37 +23,41 @@ module.exports = {
             const timeUntilTarget = nextTargetTime - now;
             setTimeout(() => { resetQuests(); scheduleResetQuests() }, timeUntilTarget);
         }
-        function resetQuests() {
+        async function resetQuests() {
             console.log('Reset des quêtes :');
-            db.query(`SELECT * FROM all_quests`, (err, all_quests_results) => {
-                if (err) { console.error('Erreur lors de la récupération de all_quests :', err); return }
-                db.query(`SELECT * FROM daily_quests`, (err, daily_quests_results) => {
-                    if (err) { console.error('Erreur lors de la récupération de daily_quests :', err); return }
-                    let questIds = daily_quests_results.map(result => parseInt(result.quest_id));
-                    const filteredArray = all_quests_results.filter(quest => !questIds.includes(parseInt(quest.id)));
-                    function shuffle(array) {
-                        for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[array[i], array[j]] = [array[j], array[i]] };
-                        return array;
-                    }
-                    const shuffledArray = shuffle([...filteredArray]);
-                    const randomThreeObjects = shuffledArray.slice(0, 3);
-                    console.log(randomThreeObjects);
-                    if (randomThreeObjects.length < 3) { console.error('Moins de 3 quêtes disponibles pour la réinitialisation'); return }
-                    db.query(`UPDATE daily_quests SET quest_id = ${randomThreeObjects[0].id} WHERE id = '1'`, (err) => {
-                        if (err) { console.log(err) };
-                        db.query(`UPDATE daily_quests SET quest_id = ${randomThreeObjects[1].id} WHERE id = '2'`, (err) => {
-                            if (err) { console.log(err) };
-                            db.query(`UPDATE daily_quests SET quest_id = ${randomThreeObjects[2].id} WHERE id = '3'`, (err) => {
-                                if (err) { console.log(err) };
-                                console.log('Les quêtes ont été réinitialisées !');
-                            });
-                        });
-                    });
-                });
-            });
+            let all_quests_results;
+            try {
+                [ all_quests_results ] = await db.query(`SELECT * FROM all_quests`);
+            } catch(err) {
+                console.error('Erreur lors de la récupération de all_quests :', err); return;
+            }
+
+            let daily_quests_results;
+            try {
+                [ daily_quests_results ] = await db.query(`SELECT * FROM daily_quests`);
+            } catch(err) {
+                console.error('Erreur lors de la récupération de daily_quests :', err); return;
+            }
+
+            let questIds = daily_quests_results.map(result => parseInt(result.quest_id));
+            const filteredArray = all_quests_results.filter(quest => !questIds.includes(parseInt(quest.id)));
+            function shuffle(array) {
+                for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[array[i], array[j]] = [array[j], array[i]] };
+                return array;
+            }
+            const shuffledArray = shuffle([...filteredArray]);
+            const randomThreeObjects = shuffledArray.slice(0, 3);
+            console.log(randomThreeObjects);
+            if (randomThreeObjects.length < 3) {
+                console.error('Moins de 3 quêtes disponibles pour la réinitialisation'); return;
+            }
+
+            await db.query(`UPDATE daily_quests SET quest_id = ${randomThreeObjects[0].id} WHERE id = '1'`).catch(console.log);
+            await db.query(`UPDATE daily_quests SET quest_id = ${randomThreeObjects[1].id} WHERE id = '2'`).catch(console.log);
+            await db.query(`UPDATE daily_quests SET quest_id = ${randomThreeObjects[2].id} WHERE id = '3'`).catch(console.log);
         };
         scheduleResetQuests();
-        setInterval(() => { db.query('SELECT 1', (err) => { if (err) { console.error('Erreur lors de la requête KEEP ALIVE :', err) } }) }, 20000);
+        setInterval(() => { db.query('SELECT 1').catch((err) => { console.error('Erreur lors de la requête KEEP ALIVE :', err) }) }, 20000);
         console.log(`Ready! Logged in as ${client.user.tag}`);
     },
 };

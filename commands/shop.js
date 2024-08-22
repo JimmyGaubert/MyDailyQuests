@@ -1,7 +1,7 @@
-const { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder } = require('discord.js');
-const mysql = require('mysql');
-const util = require('node:util');
-module.exports = {
+import { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder } from 'discord.js';
+import { db } from 'mysql';
+
+export default {
 	data: new SlashCommandBuilder().setName('shop').setDescription('Display the shop for buying items')
 		.addStringOption(option =>
 			option.setName('item').setDescription('Name of the item to buy').setRequired(false)
@@ -16,8 +16,6 @@ module.exports = {
 			option.setName('quantity').setDescription('Quantity of the item to buy').setRequired(false)
 		),
 	async execute(interaction) {
-		const db = mysql.createConnection({ host: process.env.DB_HOST, user: process.env.DB_USER, password: process.env.DB_PWD, database: process.env.DB_NAME });
-		const query = util.promisify(db.query).bind(db);
 		const itemName = interaction.options.getString('item');
 		const quantity = interaction.options.getInteger('quantity') || 1;
 		const shopItems = [
@@ -27,15 +25,14 @@ module.exports = {
 			{ title: 'chest_key', price: 5, emoji: '<:keyy:1256230191056027720>' }
 		];
 		try {
-			if (!itemName) { await displayShopItems(interaction, shopItems) } else { await buyItem(interaction, itemName, quantity, shopItems, query) }
+			if (!itemName) { await displayShopItems(interaction, shopItems) } else { await buyItem(interaction, itemName, quantity, shopItems) }
 		} catch (err) {
 			console.error(err);
 			await interaction.reply('An error occurred while processing your request. Please contact the developer.');
-		} finally {
-			db.end();
-		}
+        }
 	},
 };
+
 async function displayShopItems(interaction, shopItems) {
 	const embed = new EmbedBuilder().setColor('Gold').setTitle('Welcome to the Shop!').setImage('https://www.aht.li/3857673/shop_2.png');
 	shopItems.forEach(item => {
@@ -43,7 +40,8 @@ async function displayShopItems(interaction, shopItems) {
 	});
 	await interaction.reply({ embeds: [embed] });
 };
-async function buyItem(interaction, itemName, quantity, shopItems, query) {
+
+async function buyItem(interaction, itemName, quantity, shopItems) {
 	if (quantity <= 0) {
         await interaction.reply('You need to buy at least one item.');
         return;
@@ -54,7 +52,7 @@ async function buyItem(interaction, itemName, quantity, shopItems, query) {
 		return;
 	}
 	const userId = interaction.user.id;
-	const playerMoney = await query(`SELECT coins FROM player_money WHERE discord_id = '${userId}'`);
+	const [ playerMoney ] = await db.query(`SELECT coins FROM player_money WHERE discord_id = '${userId}'`);
 	const currentCoins = parseInt(playerMoney[0].coins);
 	const totalPrice = selectedItem.price * quantity;
 	if (currentCoins < totalPrice) {
@@ -62,12 +60,12 @@ async function buyItem(interaction, itemName, quantity, shopItems, query) {
 		return;
 	}
 	const newCoins = currentCoins - totalPrice;
-	await query(`UPDATE player_money SET coins = ${newCoins} WHERE discord_id = '${userId}'`);
-	const playerInventory = await query(`SELECT * FROM player_inventory WHERE discord_id = '${userId}'`);
+	await db.query(`UPDATE player_money SET coins = ${newCoins} WHERE discord_id = '${userId}'`);
+	const [ playerInventory ] = await db.query(`SELECT * FROM player_inventory WHERE discord_id = '${userId}'`);
 	if (!playerInventory.length) {
-		await query(`INSERT INTO player_inventory (discord_id, ${selectedItem.title}) VALUES ('${userId}', '${quantity}')`);
+		await db.query(`INSERT INTO player_inventory (discord_id, ${selectedItem.title}) VALUES ('${userId}', '${quantity}')`);
 	} else {
-		await query(`UPDATE player_inventory SET ${selectedItem.title} = ${selectedItem.title} + ${quantity} WHERE discord_id = '${userId}'`);
+		await db.query(`UPDATE player_inventory SET ${selectedItem.title} = ${selectedItem.title} + ${quantity} WHERE discord_id = '${userId}'`);
 	}
 	await interaction.reply(`You have successfully bought ${quantity} ${selectedItem.title}(s) for ${totalPrice} coins.`);
 };
