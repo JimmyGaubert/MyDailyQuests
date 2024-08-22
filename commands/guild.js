@@ -1,9 +1,9 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const mysql = require('mysql');
-const util = require('util');
-const fs = require('fs');
-const path = require('path');
-module.exports = {
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import { db } from 'mysql';
+import { readFileSync } from 'node:fs';
+import { join } from 'path';
+
+export default {
     data: new SlashCommandBuilder().setName('guild')
         .setDescription('Display guild stats and manage visibility on leaderboard')
         .addStringOption(option =>
@@ -13,15 +13,13 @@ module.exports = {
                 .addChoices({ name: 'Yes', value: 'yes' }, { name: 'No', value: 'no' })
         ),
     async execute(interaction) {
-        const db = mysql.createConnection({ host: process.env.DB_HOST, user: process.env.DB_USER, password: process.env.DB_PWD, database: process.env.DB_NAME });
-        const query = util.promisify(db.query).bind(db);
         const guildId = interaction.guild.id;
         const ownerId = interaction.guild.ownerId;
         const choice = interaction.options.getString('leaderboard');
         try {
-            const levelPointsPath = path.join(__dirname, '../json', 'level_points.json');
-            const levelPoints = JSON.parse(fs.readFileSync(levelPointsPath, 'utf-8'));
-            const guildData = await query(`SELECT * FROM guild WHERE discord_id = ?`, [guildId]);
+            const levelPointsPath = join(__dirname, '../json', 'level_points.json');
+            const levelPoints = JSON.parse(readFileSync(levelPointsPath, 'utf-8'));
+            const [ guildData ] = await db.query(`SELECT * FROM guild WHERE discord_id = ?`, [guildId]);
             if (!guildData.length) { await interaction.reply(`Guild data not found.`); return; }
             const guildOnLB = guildData[0].guild_on_lb;
             const totalGuildPoints = parseInt(guildData[0].total_guild_points);
@@ -42,10 +40,10 @@ module.exports = {
 
             if (interaction.user.id === ownerId) {
                 if (choice === 'yes') {
-                    await query(`UPDATE guild SET guild_on_lb = 'oui' WHERE discord_id = ?`, [guildId]);
+                    await db.query(`UPDATE guild SET guild_on_lb = 'oui' WHERE discord_id = ?`, [guildId]);
                     await interaction.reply(`The guild "${interaction.guild.name}" is now displayed on the leaderboard.`);
                 } else if (choice === 'no') {
-                    await query(`UPDATE guild SET guild_on_lb = 'non' WHERE discord_id = ?`, [guildId]);
+                    await db.query(`UPDATE guild SET guild_on_lb = 'non' WHERE discord_id = ?`, [guildId]);
                     await interaction.reply(`The guild "${interaction.guild.name}" is no longer displayed on the leaderboard.`);
                 } else {
                     const guildStatsEmbed = createGuildStatsEmbed(interaction.guild.name, interaction.guild.iconURL(), totalGuildPoints, guildLevel, guildOnLB === 'oui' ? 'to be implemented' : 'Not displayed');
@@ -58,8 +56,6 @@ module.exports = {
         } catch (err) {
             console.error(err);
             await interaction.reply('An error occurred while processing your request. Please contact the developer and provide screenshots.');
-        } finally {
-            db.end();
         }
     },
 };

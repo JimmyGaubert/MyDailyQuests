@@ -1,18 +1,16 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const mysql = require('mysql');
-const util = require('node:util');
-module.exports = {
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import { db } from 'mysql';
+
+export default {
 	data: new SlashCommandBuilder()
 		.setName('lb')
 		.setDescription('Display the leaderboard'),
 	async execute(interaction) {
-		const db = mysql.createConnection({ host: process.env.DB_HOST, user: process.env.DB_USER, password: process.env.DB_PWD, database: process.env.DB_NAME });
-		const query = util.promisify(db.query).bind(db);
 		try {
-			const lbExpPoints = await query(`SELECT * FROM player_stats ps INNER JOIN player_options po ON ps.discord_id = po.discord_id WHERE po.player_on_lb = 'oui' ORDER BY CAST(ps.exp_points AS SIGNED) DESC`);
-			const lbQuestsDone = await query(`SELECT * FROM player_stats ps INNER JOIN player_options po ON ps.discord_id = po.discord_id WHERE po.player_on_lb = 'oui' ORDER BY CAST(ps.quests_done AS SIGNED) DESC`);
-			const lbCoins = await query(`SELECT * FROM player_money pm INNER JOIN player_options po ON pm.discord_id = po.discord_id WHERE po.player_on_lb = 'oui' ORDER BY CAST(pm.coins AS SIGNED) DESC`);
-			const lbGuilds = await query(`SELECT * FROM guild WHERE guild_on_lb='oui' ORDER BY CAST(total_guild_points AS SIGNED) DESC `);
+			const [ lbExpPoints ] = await db.query(`SELECT * FROM player_stats ps INNER JOIN player_options po ON ps.discord_id = po.discord_id WHERE po.player_on_lb = 'oui' ORDER BY CAST(ps.exp_points AS SIGNED) DESC`);
+			const [ lbQuestsDone ] = await db.query(`SELECT * FROM player_stats ps INNER JOIN player_options po ON ps.discord_id = po.discord_id WHERE po.player_on_lb = 'oui' ORDER BY CAST(ps.quests_done AS SIGNED) DESC`);
+			const [ lbCoins ] = await db.query(`SELECT * FROM player_money pm INNER JOIN player_options po ON pm.discord_id = po.discord_id WHERE po.player_on_lb = 'oui' ORDER BY CAST(pm.coins AS SIGNED) DESC`);
+			const [ lbGuilds ] = await db.query(`SELECT * FROM guild WHERE guild_on_lb='oui' ORDER BY CAST(total_guild_points AS SIGNED) DESC `);
 			const topExpPoints = lbExpPoints.slice(0, 20);
 			const topQuestsDone = lbQuestsDone.slice(0, 20);
 			const topCoins = lbCoins.slice(0, 20);
@@ -85,8 +83,6 @@ module.exports = {
 			collector.on('end', () => msg.reactions.removeAll().catch(() => { }));
 		} catch (err) {
 			console.error(err); await interaction.reply('An error occurred while processing your request. Please contact the dev and provide screenshots.');
-		} finally {
-			db.end();
 		}
 	},
 };
