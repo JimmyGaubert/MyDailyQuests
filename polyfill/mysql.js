@@ -26,7 +26,7 @@ function promisify(clazz){
             if(typeof arguments[cbIndex] === "function") { return func.apply(this, arguments) };
 
             return new Promise((resolve, reject) => {
-                arguments[cbIndex] = function (err, ...args) {
+                arguments[cbIndex + 1] = function (err, ...args) {
                     if(err) reject(err);
                     resolve(args);
                 }
