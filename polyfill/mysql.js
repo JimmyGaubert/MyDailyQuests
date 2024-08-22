@@ -7,7 +7,7 @@ promisify(Pool);
 promisify(PoolCluster);
 
 function promisify(clazz){
-    function hasCallbackArg(func){
+    function getCallbackIdx(func){
         const args = func.toString().split(")")[0].split("(")[1].split(",").map(a => a.trim());
         if(args.includes("callback")) { return args.indexOf("callback") };
         if(args.includes("cb")) { return args.indexOf("cb") };
@@ -18,11 +18,11 @@ function promisify(clazz){
     
     for(const functionName of functionNames){
         const func = clazz.prototype[functionName];
-        const cbIndex = hasCallbackArg(func);
+        let cbIndex = getCallbackIdx(func);
         if(cbIndex === -1) { continue };
     
         clazz.prototype[functionName] = function () {
-            if(arguments.length <= cbIndex) cbIndex = arguments.length - 1;
+            if(arguments.length <= cbIndex) { cbIndex = arguments.length - 1 };
             if(typeof arguments[cbIndex] === "function") { return func.apply(this, arguments) };
 
             return new Promise((resolve, reject) => {
