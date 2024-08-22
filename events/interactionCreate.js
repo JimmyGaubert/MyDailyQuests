@@ -1,5 +1,6 @@
 import { Client, Events, EmbedBuilder } from 'discord.js';
-import { db } from 'mysql';
+import mysql from 'mysql';
+const query = mysql?.db.query;
 
 const cooldown = {};
 
@@ -11,14 +12,14 @@ export default {
         if (!command || !interaction.isChatInputCommand()) { return };
         if (cooldown[interaction.user.id] > Date.now()) { return interaction.reply({ content: 'Commands are subject to a 5 second cooldown ...', ephemeral: true }) }
         try {
-            const [ results ] = await db.query(`SELECT * FROM player WHERE discord_id = ?`, [interaction.user.id]);
+            const [ results ] = await query(`SELECT * FROM player WHERE discord_id = ?`, [interaction.user.id]);
             if (results.length === 0) {
-                await db.query(`INSERT INTO player (discord_id) VALUES (?)`, [interaction.user.id]);
-                await db.query(`INSERT INTO player_inventory (discord_id) VALUES (?)`, [interaction.user.id]);
-                await db.query(`INSERT INTO player_money (discord_id) VALUES (?)`, [interaction.user.id]);
-                await db.query(`INSERT INTO player_options (discord_id) VALUES (?)`, [interaction.user.id]);
-                await db.query(`INSERT INTO player_quests (discord_id) VALUES (?)`, [interaction.user.id]);
-                await db.query(`INSERT INTO player_stats (discord_id) VALUES (?)`, [interaction.user.id]);
+                await query(`INSERT INTO player (discord_id) VALUES (?)`, [interaction.user.id]);
+                await query(`INSERT INTO player_inventory (discord_id) VALUES (?)`, [interaction.user.id]);
+                await query(`INSERT INTO player_money (discord_id) VALUES (?)`, [interaction.user.id]);
+                await query(`INSERT INTO player_options (discord_id) VALUES (?)`, [interaction.user.id]);
+                await query(`INSERT INTO player_quests (discord_id) VALUES (?)`, [interaction.user.id]);
+                await query(`INSERT INTO player_stats (discord_id) VALUES (?)`, [interaction.user.id]);
             }
             await command.execute(interaction, client);
             const logChannel = client.channels.cache.get(`${process.env.LOGS_CHANNEL}`);

@@ -1,5 +1,6 @@
 import { Events } from 'discord.js';
-import { db } from 'mysql';
+import mysql from 'mysql';
+const query = mysql?.db.query;
 
 export default {
     name: Events.ClientReady,
@@ -27,14 +28,14 @@ export default {
             console.log('Reset des quêtes :');
             let all_quests_results;
             try {
-                [ all_quests_results ] = await db.query(`SELECT * FROM all_quests`);
+                [ all_quests_results ] = await query(`SELECT * FROM all_quests`);
             } catch(err) {
                 console.error('Erreur lors de la récupération de all_quests :', err); return;
             }
 
             let daily_quests_results;
             try {
-                [ daily_quests_results ] = await db.query(`SELECT * FROM daily_quests`);
+                [ daily_quests_results ] = await query(`SELECT * FROM daily_quests`);
             } catch(err) {
                 console.error('Erreur lors de la récupération de daily_quests :', err); return;
             }
@@ -52,12 +53,12 @@ export default {
                 console.error('Moins de 3 quêtes disponibles pour la réinitialisation'); return;
             }
 
-            await db.query(`UPDATE daily_quests SET quest_id = ${randomThreeObjects[0].id} WHERE id = '1'`).catch(console.log);
-            await db.query(`UPDATE daily_quests SET quest_id = ${randomThreeObjects[1].id} WHERE id = '2'`).catch(console.log);
-            await db.query(`UPDATE daily_quests SET quest_id = ${randomThreeObjects[2].id} WHERE id = '3'`).catch(console.log);
+            await query(`UPDATE daily_quests SET quest_id = ${randomThreeObjects[0].id} WHERE id = '1'`).catch(console.log);
+            await query(`UPDATE daily_quests SET quest_id = ${randomThreeObjects[1].id} WHERE id = '2'`).catch(console.log);
+            await query(`UPDATE daily_quests SET quest_id = ${randomThreeObjects[2].id} WHERE id = '3'`).catch(console.log);
         };
         scheduleResetQuests();
-        setInterval(() => { db.query('SELECT 1').catch((err) => { console.error('Erreur lors de la requête KEEP ALIVE :', err) }) }, 20000);
+        setInterval(() => { query('SELECT 1').catch((err) => { console.error('Erreur lors de la requête KEEP ALIVE :', err) }) }, 20000);
         console.log(`Ready! Logged in as ${client.user.tag}`);
     },
 };

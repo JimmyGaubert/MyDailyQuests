@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { db } from 'mysql';
+import mysql from 'mysql';
+const query = mysql?.db.query;
 
 export default {
 	data: new SlashCommandBuilder()
@@ -8,7 +9,7 @@ export default {
 	async execute(interaction) {
 		const inventoryName = `${interaction.user.username}'s inventory`
 		try {
-			const [ playerInventory ] = await db.query(`SELECT * FROM player_inventory WHERE discord_id ='${interaction.user.id}'`);
+			const [ playerInventory ] = await query(`SELECT * FROM player_inventory WHERE discord_id ='${interaction.user.id}'`);
 			const playerInventoryEmbed = new EmbedBuilder().setColor("Gold").setFooter({text:`${inventoryName}`}).setImage(`https://www.aht.li/3857014/bag.png`)
 				.addFields(
 					{ name: '\u200B', value: '\u200B' },

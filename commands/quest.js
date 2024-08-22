@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js'; //Client, GatewayIntentBits, Partials, ButtonBuilder, ActionRowBuilder
-import { db } from 'mysql';
+import mysql from 'mysql';
+const query = mysql?.db.query;
 
 export default {
 	data: new SlashCommandBuilder().setName('quest').setDescription('The quest board!').addStringOption(option => option.setName('choice').setDescription('Choose a quest!')
@@ -8,8 +9,8 @@ export default {
 	async execute(interaction) {
 		const choice = interaction.options.getString('choice');
 		try {
-			const [ dailyQuestsResults ] = await db.query(`SELECT quest_id FROM daily_quests`);
-			const [ allQuestsResults ] = await db.query(`SELECT * FROM all_quests`);
+			const [ dailyQuestsResults ] = await query(`SELECT quest_id FROM daily_quests`);
+			const [ allQuestsResults ] = await query(`SELECT * FROM all_quests`);
 			let questIds = dailyQuestsResults.map(result => parseInt(result.quest_id));
 			let dailyQuests = allQuestsResults.filter(quest => questIds.includes(parseInt(quest.id)));
 			const fidelityQuests = [
@@ -50,14 +51,14 @@ export default {
 };
 async function displayQuestBoard(interaction, quests, choice) {
 	const userId = interaction.user.id;
-	const [ playerQuestsResults ] = await db.query(`SELECT * FROM player_quests WHERE discord_id = '${userId}'`);
+	const [ playerQuestsResults ] = await query(`SELECT * FROM player_quests WHERE discord_id = '${userId}'`);
 	const nowEpochInSeconds = ~~(new Date().getTime() / 1000);
 	const embedsArray = [];
 	for (let i = 0; i < quests.length; i++) {
 		const quest = quests[i];
 		let itemDescription = '';
 		if (quest.required_item !== '0') {
-			const [ itemResults ] = await db.query(`SELECT title_en FROM item WHERE id = '${quest.required_item}'`);
+			const [ itemResults ] = await query(`SELECT title_en FROM item WHERE id = '${quest.required_item}'`);
 			const requiredItemName = itemResults.length > 0 ? itemResults[0].title_en : 'Unknown Item';
 			itemDescription = `Required Item: \`${requiredItemName}\``;
 		}
@@ -97,7 +98,7 @@ async function displayQuestBoard(interaction, quests, choice) {
 }
 async function handleItemQuest(interaction, quest, choice) {
 	const userId = interaction.user.id;
-	const [ playerQuestsResults ] = await db.query(`SELECT * FROM player_quests WHERE discord_id = '${userId}'`);
+	const [ playerQuestsResults ] = await query(`SELECT * FROM player_quests WHERE discord_id = '${userId}'`);
 	const nowEpochInSeconds = ~~(new Date().getTime() / 1000);
 	const midnight = new Date();
 	midnight.setHours(24, 0, 0, 0);
@@ -106,20 +107,20 @@ async function handleItemQuest(interaction, quest, choice) {
 	const playerQuestSlot=`quest_${choice}`
 	if (playerQuestsResults[0][questSlot] === undefined) { await interaction.reply(`Sorry, the quest slot ${playerQuestSlot} does not exist for this player.`); return; }
 	if (parseInt(playerQuestsResults[0][playerQuestSlot]) <= nowEpochInSeconds) {
-		const [ itemResults ] = await db.query(`SELECT * FROM item WHERE id = '${quest.required_item}'`);
-		const [ rewardResults ] = await db.query(`SELECT * FROM item WHERE id = '${quest.rewards.split('x')[1]}'`);
-		const [ playerInventoryResults ] = await db.query(`SELECT * FROM player_inventory WHERE discord_id = '${userId}'`);
+		const [ itemResults ] = await query(`SELECT * FROM item WHERE id = '${quest.required_item}'`);
+		const [ rewardResults ] = await query(`SELECT * FROM item WHERE id = '${quest.rewards.split('x')[1]}'`);
+		const [ playerInventoryResults ] = await query(`SELECT * FROM player_inventory WHERE discord_id = '${userId}'`);
 		const item = itemResults[0].title_en;
 		const reward = rewardResults[0].title_en;
 		const reward_id = parseInt(rewardResults[0].id);
 		const numberOfItemToReward = parseInt(quest.rewards.split('x')[0]);
 		if ((parseInt(playerInventoryResults[0][item]) >= 1 && parseInt(quest.required_item) != 0) || parseInt(quest.required_item) == 0) {
-			await db.query(`UPDATE player_quests SET ${playerQuestSlot} = '${midnightEpochInSeconds}' WHERE discord_id = '${userId}'`);
-			if (parseInt(quest.required_item) != 0) { await db.query(`UPDATE player_inventory SET ${item} = ${parseInt(playerInventoryResults[0][item]) - 1} WHERE discord_id = '${userId}'`) }
-			if (reward_id != 0) { await db.query(`UPDATE player_inventory SET ${reward} = ${parseInt(playerInventoryResults[0][reward]) + numberOfItemToReward} WHERE discord_id = '${userId}'`) }
-			await db.query(`UPDATE player_money SET coins = coins + 1 WHERE discord_id = '${userId}'`);
-			await db.query(`UPDATE player_stats SET exp_points = exp_points + 1, guild_points = guild_points + 1, quests_done = quests_done + 1 WHERE discord_id = '${userId}'`);
-			await db.query(`UPDATE guild SET total_guild_points = total_guild_points + 1 WHERE discord_id = '${interaction.guildId}'`);
+			await query(`UPDATE player_quests SET ${playerQuestSlot} = '${midnightEpochInSeconds}' WHERE discord_id = '${userId}'`);
+			if (parseInt(quest.required_item) != 0) { await query(`UPDATE player_inventory SET ${item} = ${parseInt(playerInventoryResults[0][item]) - 1} WHERE discord_id = '${userId}'`) }
+			if (reward_id != 0) { await query(`UPDATE player_inventory SET ${reward} = ${parseInt(playerInventoryResults[0][reward]) + numberOfItemToReward} WHERE discord_id = '${userId}'`) }
+			await query(`UPDATE player_money SET coins = coins + 1 WHERE discord_id = '${userId}'`);
+			await query(`UPDATE player_stats SET exp_points = exp_points + 1, guild_points = guild_points + 1, quests_done = quests_done + 1 WHERE discord_id = '${userId}'`);
+			await query(`UPDATE guild SET total_guild_points = total_guild_points + 1 WHERE discord_id = '${interaction.guildId}'`);
 			const embedRewards = new EmbedBuilder()
 				.setColor("Gold")
 				.setDescription(`Quest completed! ${item === "void" ? '' : `${item} -1, `}${reward === 'void' ? '' : `${reward} +${numberOfItemToReward}, `}coin +1, exp +1, gp +1 !`)
@@ -136,10 +137,10 @@ async function handleSpecialQuest(interaction, quest, choice) {
 	const userId = interaction.user.id;
 	const specialItems = ['chest_key', 'bread', 'nugget', 'rope'];
 	const randomItem = specialItems[Math.floor(Math.random() * specialItems.length)];
-	const [ playerInventoryResults ] = await db.query(`SELECT * FROM player_inventory WHERE discord_id = '${userId}'`);
-	const [ itemResults ] = await db.query(`SELECT * FROM item WHERE title_en = '${randomItem}'`);
+	const [ playerInventoryResults ] = await query(`SELECT * FROM player_inventory WHERE discord_id = '${userId}'`);
+	const [ itemResults ] = await query(`SELECT * FROM item WHERE title_en = '${randomItem}'`);
 	const itemId = parseInt(itemResults[0].id);
-	const [ playerQuestsResults ] = await db.query(`SELECT * FROM player_quests WHERE discord_id = '${userId}'`);
+	const [ playerQuestsResults ] = await query(`SELECT * FROM player_quests WHERE discord_id = '${userId}'`);
 	let questSlotNumber = interaction.options.getString('choice');
 	const questSlot = `quest_${questSlotNumber}`;
 	const lastCompletionTime = parseInt(playerQuestsResults[0][questSlot]);
@@ -149,11 +150,11 @@ async function handleSpecialQuest(interaction, quest, choice) {
 	const midnightEpochInSeconds = ~~(midnight.getTime() / 1000);
 	if (lastCompletionTime && lastCompletionTime >= nowEpochInSeconds) { await interaction.reply({ content: `Sorry, you have already completed this quest today.`, ephemeral: true }); return }
 	if (itemId !== undefined) {
-		await db.query(`UPDATE player_inventory SET ${randomItem} = ${parseInt(playerInventoryResults[0][randomItem]) + 1} WHERE discord_id = '${userId}'`);
-		await db.query(`UPDATE player_money SET coins = coins + 1 WHERE discord_id = '${userId}'`);
-		await db.query(`UPDATE player_stats SET exp_points = exp_points + 1, guild_points = guild_points + 1, quests_done = quests_done + 1 WHERE discord_id = '${userId}'`);
-		await db.query(`UPDATE guild SET total_guild_points = total_guild_points + 1 WHERE discord_id = '${interaction.guildId}'`);
-		await db.query(`UPDATE player_quests SET ${questSlot} = '${midnightEpochInSeconds}' WHERE discord_id = '${userId}'`);
+		await query(`UPDATE player_inventory SET ${randomItem} = ${parseInt(playerInventoryResults[0][randomItem]) + 1} WHERE discord_id = '${userId}'`);
+		await query(`UPDATE player_money SET coins = coins + 1 WHERE discord_id = '${userId}'`);
+		await query(`UPDATE player_stats SET exp_points = exp_points + 1, guild_points = guild_points + 1, quests_done = quests_done + 1 WHERE discord_id = '${userId}'`);
+		await query(`UPDATE guild SET total_guild_points = total_guild_points + 1 WHERE discord_id = '${interaction.guildId}'`);
+		await query(`UPDATE player_quests SET ${questSlot} = '${midnightEpochInSeconds}' WHERE discord_id = '${userId}'`);
 		const embedRewards = new EmbedBuilder()
 			.setColor("Gold")
 			.setDescription(`Quest completed! ${randomItem} +1, coin +1, exp +1, gp +1 !`)
@@ -165,8 +166,8 @@ async function handleSpecialQuest(interaction, quest, choice) {
 }
 async function handle20PercentQuest(interaction, quest) {
 	const userId = interaction.user.id;
-	const [ playerMoneyResults ] = await db.query(`SELECT coins FROM player_money WHERE discord_id = '${userId}'`);
-	const [ playerQuestsResults ] = await db.query(`SELECT * FROM player_quests WHERE discord_id = '${userId}'`);
+	const [ playerMoneyResults ] = await query(`SELECT coins FROM player_money WHERE discord_id = '${userId}'`);
+	const [ playerQuestsResults ] = await query(`SELECT * FROM player_quests WHERE discord_id = '${userId}'`);
 	if (playerMoneyResults.length === 0 || playerQuestsResults.length === 0) {
 		await interaction.reply({ content: `An error occurred: Player data not found. Please contact the dev and provide screenshots.`, ephemeral: true }); return;
 	};
@@ -182,10 +183,10 @@ async function handle20PercentQuest(interaction, quest) {
 	const isWinner = Math.random() < 0.2;
 	if (isWinner) {
 		const newCoins = currentCoins + 10;
-		await db.query(`UPDATE player_money SET coins = ${newCoins > 0 ? newCoins : 0} WHERE discord_id = '${userId}'`);
-		await db.query(`UPDATE player_stats SET exp_points = exp_points + ${quest.exp_given}, guild_points = guild_points + 1, quests_done = quests_done + 1 WHERE discord_id = '${userId}'`);
-		await db.query(`UPDATE guild SET total_guild_points = total_guild_points + 1 WHERE discord_id = '${interaction.guildId}'`);
-		await db.query(`UPDATE player_quests SET ${questSlot} = '${midnightEpochInSeconds}' WHERE discord_id = '${userId}'`);
+		await query(`UPDATE player_money SET coins = ${newCoins > 0 ? newCoins : 0} WHERE discord_id = '${userId}'`);
+		await query(`UPDATE player_stats SET exp_points = exp_points + ${quest.exp_given}, guild_points = guild_points + 1, quests_done = quests_done + 1 WHERE discord_id = '${userId}'`);
+		await query(`UPDATE guild SET total_guild_points = total_guild_points + 1 WHERE discord_id = '${interaction.guildId}'`);
+		await query(`UPDATE player_quests SET ${questSlot} = '${midnightEpochInSeconds}' WHERE discord_id = '${userId}'`);
 		const embedRewards = new EmbedBuilder()
 			.setColor("Gold")
 			.setDescription(`Congratulations! You won the quest and earned 10 coins. Your new balance is ${newCoins > 0 ? newCoins : 0} coins. exp +${quest.exp_given}, gp +1 !`)
@@ -194,10 +195,10 @@ async function handle20PercentQuest(interaction, quest) {
 	} else {
 		const coinsLost = Math.min(currentCoins, 5);
 		const newCoins = currentCoins - coinsLost;
-		await db.query(`UPDATE player_money SET coins = ${newCoins > 0 ? newCoins : 0} WHERE discord_id = '${userId}'`);
-		await db.query(`UPDATE player_stats SET exp_points = exp_points + ${quest.exp_given}, guild_points = guild_points + 1, quests_done = quests_done + 1 WHERE discord_id = '${userId}'`);
-		await db.query(`UPDATE guild SET total_guild_points = total_guild_points + 1 WHERE discord_id = '${interaction.guildId}'`);
-		await db.query(`UPDATE player_quests SET ${questSlot} = '${midnightEpochInSeconds}' WHERE discord_id = '${userId}'`);
+		await query(`UPDATE player_money SET coins = ${newCoins > 0 ? newCoins : 0} WHERE discord_id = '${userId}'`);
+		await query(`UPDATE player_stats SET exp_points = exp_points + ${quest.exp_given}, guild_points = guild_points + 1, quests_done = quests_done + 1 WHERE discord_id = '${userId}'`);
+		await query(`UPDATE guild SET total_guild_points = total_guild_points + 1 WHERE discord_id = '${interaction.guildId}'`);
+		await query(`UPDATE player_quests SET ${questSlot} = '${midnightEpochInSeconds}' WHERE discord_id = '${userId}'`);
 		await interaction.reply(`Sorry, you lost the quest and lost ${coinsLost} coins. Your new balance is ${newCoins > 0 ? newCoins : 0} coins. exp +${quest.exp_given}, gp +1 !`);
 	}
 }
@@ -220,17 +221,17 @@ async function handleFidelityQuest(interaction, quest, choice) {
 	}
 }
 async function completeFidelityQuest(interaction, quest, userId, choice) {
-	const [ playerQuestsResults ] = await db.query(`SELECT * FROM player_quests WHERE discord_id = '${userId}'`);
+	const [ playerQuestsResults ] = await query(`SELECT * FROM player_quests WHERE discord_id = '${userId}'`);
 	const nowEpochInSeconds = ~~(new Date().getTime() / 1000);
 	const midnight = new Date();
 	midnight.setHours(24, 0, 0, 0);
 	const midnightEpochInSeconds = ~~(midnight.getTime() / 1000);
 	const questSlot = `quest_${(choice)}`;
 	if (playerQuestsResults[0][questSlot] === undefined || parseInt(playerQuestsResults[0][questSlot]) < nowEpochInSeconds) {
-		await db.query(`UPDATE player_quests SET ${questSlot} = '${midnightEpochInSeconds}' WHERE discord_id = '${userId}'`);
-		await db.query(`UPDATE player_money SET coins = coins + 2 WHERE discord_id = '${userId}'`);
-		await db.query(`UPDATE player_stats SET exp_points = exp_points + 1, guild_points = guild_points + 1, quests_done = quests_done + 1 WHERE discord_id = '${userId}'`);
-		await db.query(`UPDATE guild SET total_guild_points = total_guild_points + 1 WHERE discord_id = '${interaction.guildId}'`);
+		await query(`UPDATE player_quests SET ${questSlot} = '${midnightEpochInSeconds}' WHERE discord_id = '${userId}'`);
+		await query(`UPDATE player_money SET coins = coins + 2 WHERE discord_id = '${userId}'`);
+		await query(`UPDATE player_stats SET exp_points = exp_points + 1, guild_points = guild_points + 1, quests_done = quests_done + 1 WHERE discord_id = '${userId}'`);
+		await query(`UPDATE guild SET total_guild_points = total_guild_points + 1 WHERE discord_id = '${interaction.guildId}'`);
 		let embedRewards = new EmbedBuilder()
 			.setColor("Gold")
 			.setImage(`${quest.done_img}`)

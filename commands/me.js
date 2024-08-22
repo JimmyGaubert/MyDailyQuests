@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { db } from 'mysql';
+import mysql from 'mysql';
+const query = mysql?.db.query;
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -14,9 +15,9 @@ export default {
 			const statsName = `${interaction.user.username}'s stats`;
 			const levelPointsPath = join(__dirname, '../json', 'level_points.json');
 			const levelPoints = JSON.parse(readFileSync(levelPointsPath, 'utf-8'));
-			const [ playerStats ] = await db.query(`SELECT * FROM player_stats WHERE discord_id ='${interaction.user.id}'`);
-			const [ playerOptions ] = await db.query(`SELECT * FROM player_options WHERE discord_id ='${interaction.user.id}'`);
-			const [ playerCoins ] = await db.query(`SELECT * FROM player_money WHERE discord_id ='${interaction.user.id}'`);
+			const [ playerStats ] = await query(`SELECT * FROM player_stats WHERE discord_id ='${interaction.user.id}'`);
+			const [ playerOptions ] = await query(`SELECT * FROM player_options WHERE discord_id ='${interaction.user.id}'`);
+			const [ playerCoins ] = await query(`SELECT * FROM player_money WHERE discord_id ='${interaction.user.id}'`);
 			const playerPoints = BigInt(playerStats[0].exp_points);
 			let playerLevel = 1;
 			for (const [level, points] of Object.entries(levelPoints)) { if (playerPoints >= BigInt(points)) { playerLevel = parseInt(level) } else { break } };
@@ -34,10 +35,10 @@ export default {
 				await interaction.reply({ embeds: [playerStatsEmbed] });
 			} else {
 				if (choice === 'yes') {
-					await db.query(`UPDATE player_options SET player_on_lb = 'oui' WHERE discord_id = '${interaction.user.id}'`);
+					await query(`UPDATE player_options SET player_on_lb = 'oui' WHERE discord_id = '${interaction.user.id}'`);
 					await interaction.reply(`You're now... Displayed on the leaderboard!`);
 				} else if (choice === 'no') {
-					await db.query(`UPDATE player_options SET player_on_lb = 'non' WHERE discord_id = '${interaction.user.id}'`);
+					await query(`UPDATE player_options SET player_on_lb = 'non' WHERE discord_id = '${interaction.user.id}'`);
 					await interaction.reply(`You're now... Not displayed on the leaderboard!`);
 				}
 			}

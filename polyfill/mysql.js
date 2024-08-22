@@ -37,3 +37,6 @@ function promisify(clazz){
         });
     }
 }
+
+
+console.log(Connection.prototype.connect)

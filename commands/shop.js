@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder } from 'discord.js';
-import { db } from 'mysql';
+import mysql from 'mysql';
+const query = mysql?.db.query;
 
 export default {
 	data: new SlashCommandBuilder().setName('shop').setDescription('Display the shop for buying items')
@@ -52,7 +53,7 @@ async function buyItem(interaction, itemName, quantity, shopItems) {
 		return;
 	}
 	const userId = interaction.user.id;
-	const [ playerMoney ] = await db.query(`SELECT coins FROM player_money WHERE discord_id = '${userId}'`);
+	const [ playerMoney ] = await query(`SELECT coins FROM player_money WHERE discord_id = '${userId}'`);
 	const currentCoins = parseInt(playerMoney[0].coins);
 	const totalPrice = selectedItem.price * quantity;
 	if (currentCoins < totalPrice) {
@@ -60,12 +61,12 @@ async function buyItem(interaction, itemName, quantity, shopItems) {
 		return;
 	}
 	const newCoins = currentCoins - totalPrice;
-	await db.query(`UPDATE player_money SET coins = ${newCoins} WHERE discord_id = '${userId}'`);
-	const [ playerInventory ] = await db.query(`SELECT * FROM player_inventory WHERE discord_id = '${userId}'`);
+	await query(`UPDATE player_money SET coins = ${newCoins} WHERE discord_id = '${userId}'`);
+	const [ playerInventory ] = await query(`SELECT * FROM player_inventory WHERE discord_id = '${userId}'`);
 	if (!playerInventory.length) {
-		await db.query(`INSERT INTO player_inventory (discord_id, ${selectedItem.title}) VALUES ('${userId}', '${quantity}')`);
+		await query(`INSERT INTO player_inventory (discord_id, ${selectedItem.title}) VALUES ('${userId}', '${quantity}')`);
 	} else {
-		await db.query(`UPDATE player_inventory SET ${selectedItem.title} = ${selectedItem.title} + ${quantity} WHERE discord_id = '${userId}'`);
+		await query(`UPDATE player_inventory SET ${selectedItem.title} = ${selectedItem.title} + ${quantity} WHERE discord_id = '${userId}'`);
 	}
 	await interaction.reply(`You have successfully bought ${quantity} ${selectedItem.title}(s) for ${totalPrice} coins.`);
 };

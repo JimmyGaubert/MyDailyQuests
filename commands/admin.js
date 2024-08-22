@@ -1,5 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { db } from 'mysql';
+import mysql from 'mysql';
+const query = mysql?.db.query;
 
 const command_desc = 'A mysterious command. Restricted to GameMasters.';
 
@@ -35,22 +36,22 @@ export default {
             case 'cheat':
                 switch (code) {
                     case 'makemerich':
-                        await db.query(`UPDATE player_money SET coins = coins + 100 WHERE discord_id = '${interaction.user.id}'`);
+                        await query(`UPDATE player_money SET coins = coins + 100 WHERE discord_id = '${interaction.user.id}'`);
                         await interaction.reply(`${done}`);
                         break;
                     case 'makemestrong':
-                        await db.query(`UPDATE player_stats SET exp_points = exp_points + 100 WHERE discord_id = '${interaction.user.id}'`);
+                        await query(`UPDATE player_stats SET exp_points = exp_points + 100 WHERE discord_id = '${interaction.user.id}'`);
                         await interaction.reply(`${done}`);
                         break;
                     case 'resetmyquests':
-                        await db.query(`UPDATE player_quests SET quest_1 = '0', quest_2 = '0', quest_3 = '0', quest_4 = '0', quest_5 = '0' WHERE discord_id = '${interaction.user.id}'`);
+                        await query(`UPDATE player_quests SET quest_1 = '0', quest_2 = '0', quest_3 = '0', quest_4 = '0', quest_5 = '0' WHERE discord_id = '${interaction.user.id}'`);
                         await interaction.reply(`${done}`);
                         break;
                     case 'resetmyprofile':
-                        await db.query(`UPDATE player_quests SET quest_1 = '0', quest_2 = '0', quest_3 = '0', quest_4 = '0', quest_5 = '0' WHERE discord_id = '${interaction.user.id}'`);
-                        await db.query(`UPDATE player_stats SET exp_points = '0', guild_points = '0', quests_done = '0' WHERE discord_id = '${interaction.user.id}'`);
-                        await db.query(`UPDATE player_money SET coins = '0' WHERE discord_id = '${interaction.user.id}'`);
-                        await db.query(`UPDATE player_inventory SET void = '0', coin = '0', experience = '0', bread = '0', rope = '0', nugget = '0' WHERE discord_id = '${interaction.user.id}'`);
+                        await query(`UPDATE player_quests SET quest_1 = '0', quest_2 = '0', quest_3 = '0', quest_4 = '0', quest_5 = '0' WHERE discord_id = '${interaction.user.id}'`);
+                        await query(`UPDATE player_stats SET exp_points = '0', guild_points = '0', quests_done = '0' WHERE discord_id = '${interaction.user.id}'`);
+                        await query(`UPDATE player_money SET coins = '0' WHERE discord_id = '${interaction.user.id}'`);
+                        await query(`UPDATE player_inventory SET void = '0', coin = '0', experience = '0', bread = '0', rope = '0', nugget = '0' WHERE discord_id = '${interaction.user.id}'`);
                         await interaction.reply(`${done}`);
                         break;
                     default:

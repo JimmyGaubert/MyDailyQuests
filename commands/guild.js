@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { db } from 'mysql';
+import mysql from 'mysql';
+const query = mysql?.db.query;
 import { readFileSync } from 'node:fs';
 import { join } from 'path';
 
@@ -19,7 +20,7 @@ export default {
         try {
             const levelPointsPath = join(__dirname, '../json', 'level_points.json');
             const levelPoints = JSON.parse(readFileSync(levelPointsPath, 'utf-8'));
-            const [ guildData ] = await db.query(`SELECT * FROM guild WHERE discord_id = ?`, [guildId]);
+            const [ guildData ] = await query(`SELECT * FROM guild WHERE discord_id = ?`, [guildId]);
             if (!guildData.length) { await interaction.reply(`Guild data not found.`); return; }
             const guildOnLB = guildData[0].guild_on_lb;
             const totalGuildPoints = parseInt(guildData[0].total_guild_points);
@@ -40,10 +41,10 @@ export default {
 
             if (interaction.user.id === ownerId) {
                 if (choice === 'yes') {
-                    await db.query(`UPDATE guild SET guild_on_lb = 'oui' WHERE discord_id = ?`, [guildId]);
+                    await query(`UPDATE guild SET guild_on_lb = 'oui' WHERE discord_id = ?`, [guildId]);
                     await interaction.reply(`The guild "${interaction.guild.name}" is now displayed on the leaderboard.`);
                 } else if (choice === 'no') {
-                    await db.query(`UPDATE guild SET guild_on_lb = 'non' WHERE discord_id = ?`, [guildId]);
+                    await query(`UPDATE guild SET guild_on_lb = 'non' WHERE discord_id = ?`, [guildId]);
                     await interaction.reply(`The guild "${interaction.guild.name}" is no longer displayed on the leaderboard.`);
                 } else {
                     const guildStatsEmbed = createGuildStatsEmbed(interaction.guild.name, interaction.guild.iconURL(), totalGuildPoints, guildLevel, guildOnLB === 'oui' ? 'to be implemented' : 'Not displayed');
